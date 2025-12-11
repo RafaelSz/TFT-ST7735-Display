@@ -214,7 +214,7 @@ Projekt wykorzystuje biblioteki open-source:
 
 ## Autor
 
-Projekt stworzony dla ESP32 DOIT DEVKIT V1 z wyświetlaczem ST7735 128x160.
+RafaelSz. Projekt stworzony dla ESP32 DOIT DEVKIT V1 z wyświetlaczem ST7735 128x160.
 
 ---
 
