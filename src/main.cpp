@@ -19,8 +19,9 @@
 #define TFT_RESET  4    // RESET-> GPIO4
 #define TFT_CS     15   // CS   -> GPIO15
 
-// Default init for 128x160 modules: use GREENTAB (common for 128x160)
-#define TFT_INIT INITR_GREENTAB
+// Default init for 128x160 modules: try different types if artifacts appear
+// Options: INITR_GREENTAB, INITR_BLACKTAB, INITR_144GREENTAB, INITR_MINI160x80
+#define TFT_INIT INITR_BLACKTAB
 #define TFT_LED    32   // LED/backlight
 
 // WiFi credentials - zmień na swoje
@@ -207,9 +208,12 @@ void setup() {
   delay(50);
 
   // Inicjalizacja wyświetlacza dla 128x160 (GREENTAB)
-  tft.setRotation(1);          // Rotacja (0-3)
   Serial.print("Używam INIT: "); Serial.println("GREENTAB");
   tft.initR(TFT_INIT);
+  
+  // Fix display offset/artifacts (set proper column/row offsets)
+  tft.setRotation(1);          // Rotacja (0-3)
+  tft.setAddrWindow(0, 0, 159, 127); // Reset address window
   tft.fillScreen(ST7735_BLACK);
 
   // Wyświetl dłuższy test kolorów aby łatwiej było zauważyć efekt
