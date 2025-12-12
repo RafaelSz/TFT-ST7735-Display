@@ -1,14 +1,15 @@
-# ESP32 Zegar z Wyświetlaczem ST7735
+# ESP32 Zegar z Wyświetlaczem ST7735 i Czujnikiem DHT11
 
-Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę i dzień tygodnia na małym kolorowym wyświetlaczu ST7735 (128x160 pikseli). Czas jest synchronizowany z serwerem NTP poprzez połączenie WiFi.
+Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę, dzień tygodnia, temperaturę i wilgotność na małym kolorowym wyświetlaczu ST7735 (128x160 pikseli). Czas jest synchronizowany z serwerem NTP poprzez połączenie WiFi, a dane o temperaturze i wilgotności są odczytywane z czujnika DHT11.
 
 ## Funkcje
 
 - ✅ **Wyświetlanie godziny** — w formacie HH:MM:SS (biały tekst, duża czcionka)
-- ✅ **Wyświetlanie daty** — w formacie DD.MM.YYYY (żółty tekst)
-- ✅ **Wyświetlanie dnia tygodnia** — w pełnej polskiej nazwie (Poniedziałek, Wtorek, itd.)
+- ✅ **Wyświetlanie daty** — w formacie DD.MM.YYYY z jednoliterową nazwą dnia tygodnia (żółty tekst + cyan)
+- ✅ **Temperatura** — odczyt z czujnika DHT11, wyświetlanie jako "TEMP: XX.X C" (czerwony tekst, duża czcionka)
+- ✅ **Wilgotność** — odczyt z czujnika DHT11, wyświetlanie jako "WILG: XX.X %" (zielony tekst, duża czcionka)
 - ✅ **Synchronizacja czasu** — poprzez NTP (serwer: pool.ntp.org)
-- ✅ **Połączenie WiFi** — automatyczne łączenie się z sieciąWiFi przy starcie
+- ✅ **Połączenie WiFi** — automatyczne łączenie się z siecią WiFi przy starcie
 - ✅ **Diagnostyka WiFi** — wypisanie dostępnych sieci, statusu połączenia, siły sygnału (RSSI)
 - ✅ **Podświetlenie sterowane** — GPIO32 kontroluje LED wyświetlacza
 - ✅ **Sprzętowe SPI** — komunikacja z wyświetlaczem przez VSPI z ręcznym resetem
@@ -17,19 +18,21 @@ Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę i d
 
 ### Sprzęt
 - **Płytka**: ESP32 DOIT DEVKIT V1
-- **Wyświetlacz**: ST7735, 128x160 pikseli, inicjalizacja GREENTAB
+- **Wyświetlacz**: ST7735, 128x160 pikseli, inicjalizacja BLACKTAB
+- **Czujnik**: DHT11 (temperatura i wilgotność)
 - **Kabel USB**: do programowania i zasilania
 - **Zasilanie**: 3.3V (z USB lub external)
 
 ### Biblioteki
 - `Adafruit ST7735 and ST7789 Library` (v1.10.0+)
 - `Adafruit GFX Library` (v1.11.5+)
+- `DHT sensor library` (v1.4.6+)
 - `SPI` (wbudowana w Arduino Framework)
 - `WiFi` (wbudowana w Arduino Framework)
 
 ## Schemat Połączeń
 
-Wyświetlacz ST7735 podłączyć do ESP32 następująco:
+### Wyświetlacz ST7735
 
 | Moduł ST7735 | ESP32 Pin | Opis |
 |---|---|---|
@@ -42,7 +45,15 @@ Wyświetlacz ST7735 podłączyć do ESP32 następująco:
 | **CS** | GPIO15 | Chip Select |
 | **LED** | GPIO32 | Podświetlenie (opcjonalne) |
 
-**Uwaga**: Wszystkie piny GPIO powinny być na poziomie 3.3V. Wyświetlacz wymaga zasilania 3.3V, **nie 5V**!
+### Czujnik DHT11
+
+| DHT11 Pin | ESP32 Pin | Opis |
+|---|---|---|
+| **VCC** | 3.3V lub 5V | Zasilanie |
+| **DATA** | GPIO5 | Pin danych czujnika |
+| **GND** | GND | Masa (Ground) |
+
+**Uwaga**: Wyświetlacz ST7735 wymaga zasilania 3.3V, **nie 5V**! Czujnik DHT11 może działać na 3.3V lub 5V.
 
 ## Instalacja i Konfiguracja
 
@@ -100,25 +111,29 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 
 #### Funkcja: `displayDateTime()`
 - Pobranie bieżącego czasu
+- Odczyt temperatury i wilgotności z DHT11
 - Konwersja do czytelnego formatu (DD.MM.YYYY, HH:MM:SS)
 - Wyświetlenie na ekranie:
-  - **Wiersz 1-2**: "GODZINA:" + godzina (biały, duża czcionka)
-  - **Wiersz 3-4**: "DATA:" + data (żółty, duża czcionka)
-  - **Wiersz 5**: Dzień tygodnia (cyan, mała czcionka)
+  - **Wiersz 1**: Godzina HH:MM:SS (biały, duża czcionka 3x)
+  - **Wiersz 2**: Data DD.MM.YYYY + jednoliterowa nazwa dnia (żółty + cyan, czcionka 2x)
+  - **Wiersz 3**: TEMP: XX.X C (czerwony, czcionka 2x)
+  - **Wiersz 4**: WILG: XX.X % (zielony, czcionka 2x)
 
 #### Funkcja: `setup()`
 - Inicjalizacja UART (115200 baud)
 - Włączenie podświetlenia (GPIO32)
 - Inicjalizacja magistrali SPI (VSPI)
 - Ręczny reset wyświetlacza
-- Inicjalizacja wyświetlacza (INITR_GREENTAB)
+- Inicjalizacja wyświetlacza (INITR_BLACKTAB)
 - Test kolorów (RED, GREEN, BLUE, WHITE, BLACK)
+- Inicjalizacja czujnika DHT11
 - Połączenie z WiFi
 - Synchronizacja czasu NTP
 
 #### Funkcja: `loop()`
 - Pobranie bieżącego czasu
-- Wyświetlenie na ekranie
+- Odczyt temperatury i wilgotności z DHT11
+- Wyświetlenie wszystkich danych na ekranie
 - Aktualizacja co 1 sekundę
 
 ## Diagnostyka Problemów
@@ -145,6 +160,7 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 
 ## Pinowanie — Tablica Referencyjna
 
+### Wyświetlacz ST7735
 ```
 ESP32 Pin 18  ---- SCK  (VSPI SCLK)
 ESP32 Pin 23  ---- SDA  (VSPI MOSI)
@@ -156,11 +172,19 @@ ESP32 GND     ---- GND
 ESP32 3.3V    ---- VCC
 ```
 
+### Czujnik DHT11
+```
+ESP32 Pin 5   ---- DATA (DHT11 data pin)
+ESP32 GND     ---- GND
+ESP32 3.3V    ---- VCC (lub 5V)
+```
+
 ## Konsola Szeregowa — Przykładowe Wyjście
 
 ```
 Inicjalizacja ST7735...
 Używam INIT: GREENTAB
+Inicjalizacja DHT11...
 ----- WiFi diagnostic start -----
 Skanowanie pobliskich sieci WiFi...
 Znaleziono 25 sieci:
@@ -173,7 +197,7 @@ Sygnał (RSSI): -59
 BSSID: AA:BB:CC:DD:EE:FF
 ----- WiFi diagnostic end -----
 Synchronizacja czasu...
-Bieżący czas: Thu Dec 11 21:15:30 2025
+Bieżący czas: Thu Dec 12 11:00:00 2025
 ```
 
 ## Modyfikacje i Rozszerzenia
@@ -216,6 +240,23 @@ Projekt wykorzystuje biblioteki open-source:
 
 RafaelSz. Projekt stworzony dla ESP32 DOIT DEVKIT V1 z wyświetlaczem ST7735 128x160.
 
+## Layout wyświetlacza
+
+```
+┌────────────────────────┐
+│  HH:MM:SS              │  ← Godzina (biały, 3x)
+│                        │
+│  DD.MM.YYYY D          │  ← Data + dzień (żółty + cyan, 2x)
+│                        │
+│  TEMP: XX.X C          │  ← Temperatura (czerwony, 2x)
+│                        │
+│  WILG: XX.X %          │  ← Wilgotność (zielony, 2x)
+│                        │
+└────────────────────────┘
+```
+
+Gdzie `D` to jednoliterowa nazwa dnia tygodnia: N (Niedziela), P (Poniedziałek), W (Wtorek), S (Środa), C (Czwartek), P (Piątek), S (Sobota).
+
 ---
 
-**Ostatnia aktualizacja**: 11 grudnia 2025
+**Ostatnia aktualizacja**: 12 grudnia 2025

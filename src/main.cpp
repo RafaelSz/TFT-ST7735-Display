@@ -38,10 +38,10 @@ const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 1 * 3600;           // UTC+1 (zmień odpowiednio)
 const int daylightOffset_sec = 0;              // DST offset
 
-// Polish day names (without diacritics for basic ASCII font)
+// Polish day names (single letter)
 const char* dayNamesPolish[] = {
-  "Niedziela", "Poniedzialek", "Wtorek", "Sroda", 
-  "Czwartek", "Piatek", "Sobota"
+  "N", "P", "W", "S", 
+  "C", "P", "S"
 };
 
 // Function to transliterate Polish characters to ASCII
@@ -174,40 +174,37 @@ void displayDateTime() {
   tft.setCursor(8, 8);
   tft.println(timeStr);
 
-  // Date value
+  // Date value with day of week (single letter)
   tft.setTextColor(ST7735_YELLOW);
   tft.setTextSize(2);
   tft.setCursor(8, 40);
-  tft.println(dateStr);
-
-  // Dzień tygodnia
+  tft.print(dateStr);
+  tft.print(" ");
   tft.setTextColor(ST7735_CYAN);
-  tft.setTextSize(1);
-  tft.setCursor(8, 68);
   tft.println(polishDay);
   
-  // Temperatura
+  // Temperatura (większa czcionka)
   tft.setTextColor(ST7735_RED);
-  tft.setTextSize(1);
-  tft.setCursor(8, 88);
+  tft.setTextSize(2);
+  tft.setCursor(8, 68);
   if (!isnan(temperature)) {
-    tft.print("Temp: ");
+    tft.print("TEMP: ");
     tft.print(temperature, 1);
     tft.println(" C");
   } else {
-    tft.println("Temp: --");
+    tft.println("TEMP: --C");
   }
   
-  // Wilgotność
+  // Wilgotność (większa czcionka)
   tft.setTextColor(ST7735_GREEN);
-  tft.setTextSize(1);
-  tft.setCursor(8, 104);
+  tft.setTextSize(2);
+  tft.setCursor(8, 92);
   if (!isnan(humidity)) {
-    tft.print("Wilg: ");
+    tft.print("WILG: ");
     tft.print(humidity, 1);
     tft.println(" %");
   } else {
-    tft.println("Wilg: --");
+    tft.println("WILG: -- %");
   }
 }
 
