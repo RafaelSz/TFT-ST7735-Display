@@ -4,6 +4,7 @@
 #include <SPI.h>
 #include <time.h>
 #include <WiFi.h>
+#include <DHT.h>
 
 // Jeśli chcesz pominąć test i używać WiFi/NTP ustaw 0
 #define DISABLE_WIFI 0
@@ -23,6 +24,10 @@
 // Options: INITR_GREENTAB, INITR_BLACKTAB, INITR_144GREENTAB, INITR_MINI160x80
 #define TFT_INIT INITR_BLACKTAB
 #define TFT_LED    32   // LED/backlight
+
+// DHT11 sensor configuration
+#define DHTPIN 5        // DHT11 data pin -> GPIO5
+#define DHTTYPE DHT11   // DHT 11
 
 // WiFi credentials - zmień na swoje
 const char* ssid = "247-rx-24-fritz";
@@ -70,6 +75,9 @@ String removePolishDiacritics(const char* text) {
 
 // Use hardware SPI (VSPI) on ESP32 and Adafruit constructor for HW SPI (cs, dc, rst)
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_A0, TFT_RESET);
+
+// Initialize DHT sensor
+DHT dht(DHTPIN, DHTTYPE);
 
 void connectToWiFi() {
   Serial.println("----- WiFi diagnostic start -----");
@@ -153,38 +161,54 @@ void displayDateTime() {
   // Use Polish day name
   const char* polishDay = dayNamesPolish[timeinfo->tm_wday];
   
+  // Odczytaj dane z DHT11
+  float humidity = dht.readHumidity();
+  float temperature = dht.readTemperature();
+  
   // Wyczyść ekran
   tft.fillScreen(ST7735_BLACK);
   
-  // Wyświetl godzinę na górze
-  tft.setTextColor(ST7735_RED);
-  tft.setTextSize(1);
-  tft.setCursor(8, 8);
-  tft.println("GODZINA:");
-
   // Time value (duża czcionka, u góry)
   tft.setTextColor(ST7735_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(8, 24);
+  tft.setTextSize(3);
+  tft.setCursor(8, 8);
   tft.println(timeStr);
-
-  // Wyświetl datę poniżej
-  tft.setTextColor(ST7735_GREEN);
-  tft.setTextSize(1);
-  tft.setCursor(8, 56);
-  tft.println("DATA:");
 
   // Date value
   tft.setTextColor(ST7735_YELLOW);
   tft.setTextSize(2);
-  tft.setCursor(8, 72);
+  tft.setCursor(8, 40);
   tft.println(dateStr);
 
-  // Dzień tygodnia na dole
+  // Dzień tygodnia
   tft.setTextColor(ST7735_CYAN);
   tft.setTextSize(1);
-  tft.setCursor(8, 104);
+  tft.setCursor(8, 68);
   tft.println(polishDay);
+  
+  // Temperatura
+  tft.setTextColor(ST7735_RED);
+  tft.setTextSize(1);
+  tft.setCursor(8, 88);
+  if (!isnan(temperature)) {
+    tft.print("Temp: ");
+    tft.print(temperature, 1);
+    tft.println(" C");
+  } else {
+    tft.println("Temp: --");
+  }
+  
+  // Wilgotność
+  tft.setTextColor(ST7735_GREEN);
+  tft.setTextSize(1);
+  tft.setCursor(8, 104);
+  if (!isnan(humidity)) {
+    tft.print("Wilg: ");
+    tft.print(humidity, 1);
+    tft.println(" %");
+  } else {
+    tft.println("Wilg: --");
+  }
 }
 
 void setup() {
@@ -224,9 +248,13 @@ void setup() {
   tft.fillScreen(ST7735_BLACK); delay(500);
   // Wyświetl komunikat
   tft.setTextColor(ST7735_WHITE);
-  tft.setTextSize(2);
+  tft.setTextSize(1);
   tft.setCursor(10, 10);
   tft.println("Uruchamianie...");
+  
+  // Inicjalizacja sensora DHT11
+  Serial.println("Inicjalizacja DHT11...");
+  dht.begin();
   
   #if !defined(DISABLE_WIFI) || (DISABLE_WIFI == 0)
   // Połączenie z WiFi
