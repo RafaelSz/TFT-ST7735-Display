@@ -32,11 +32,40 @@ const char* ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 1 * 3600;           // UTC+1 (zmień odpowiednio)
 const int daylightOffset_sec = 0;              // DST offset
 
-// Polish day names
+// Polish day names (without diacritics for basic ASCII font)
 const char* dayNamesPolish[] = {
-  "Niedziela", "Poniedziałek", "Wtorek", "Środa", 
-  "Czwartek", "Piątek", "Sobota"
+  "Niedziela", "Poniedzialek", "Wtorek", "Sroda", 
+  "Czwartek", "Piatek", "Sobota"
 };
+
+// Function to transliterate Polish characters to ASCII
+String removePolishDiacritics(const char* text) {
+  String result = "";
+  for (int i = 0; text[i] != '\0'; i++) {
+    unsigned char c = text[i];
+    // UTF-8 encoded Polish characters (2-byte sequences)
+    if (c == 0xC4 && text[i+1] == 0x85) { result += 'a'; i++; } // ą
+    else if (c == 0xC4 && text[i+1] == 0x84) { result += 'A'; i++; } // Ą
+    else if (c == 0xC4 && text[i+1] == 0x87) { result += 'c'; i++; } // ć
+    else if (c == 0xC4 && text[i+1] == 0x86) { result += 'C'; i++; } // Ć
+    else if (c == 0xC4 && text[i+1] == 0x99) { result += 'e'; i++; } // ę
+    else if (c == 0xC4 && text[i+1] == 0x98) { result += 'E'; i++; } // Ę
+    else if (c == 0xC5 && text[i+1] == 0x82) { result += 'l'; i++; } // ł
+    else if (c == 0xC5 && text[i+1] == 0x81) { result += 'L'; i++; } // Ł
+    else if (c == 0xC5 && text[i+1] == 0x84) { result += 'n'; i++; } // ń
+    else if (c == 0xC5 && text[i+1] == 0x83) { result += 'N'; i++; } // Ń
+    else if (c == 0xC3 && text[i+1] == 0xB3) { result += 'o'; i++; } // ó
+    else if (c == 0xC3 && text[i+1] == 0x93) { result += 'O'; i++; } // Ó
+    else if (c == 0xC5 && text[i+1] == 0x9B) { result += 's'; i++; } // ś
+    else if (c == 0xC5 && text[i+1] == 0x9A) { result += 'S'; i++; } // Ś
+    else if (c == 0xC5 && text[i+1] == 0xBA) { result += 'z'; i++; } // ź
+    else if (c == 0xC5 && text[i+1] == 0xB9) { result += 'Z'; i++; } // Ź
+    else if (c == 0xC5 && text[i+1] == 0xBC) { result += 'z'; i++; } // ż
+    else if (c == 0xC5 && text[i+1] == 0xBB) { result += 'Z'; i++; } // Ż
+    else { result += (char)c; }
+  }
+  return result;
+}
 
 // Use hardware SPI (VSPI) on ESP32 and Adafruit constructor for HW SPI (cs, dc, rst)
 Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_A0, TFT_RESET);
@@ -193,7 +222,7 @@ void setup() {
   tft.setTextColor(ST7735_WHITE);
   tft.setTextSize(2);
   tft.setCursor(10, 10);
-  tft.println("Inicjalizacja...");
+  tft.println("Uruchamianie...");
   
   #if !defined(DISABLE_WIFI) || (DISABLE_WIFI == 0)
   // Połączenie z WiFi
