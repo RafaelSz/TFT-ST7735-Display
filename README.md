@@ -5,14 +5,15 @@ Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę, dz
 ## Funkcje
 
 - ✅ **Wyświetlanie godziny** — w formacie HH:MM:SS (biały tekst, duża czcionka)
-- ✅ **Wyświetlanie daty** — w formacie DD.MM.YYYY z jednoliterową nazwą dnia tygodnia (żółty tekst + cyan)
+- ✅ **Wyświetlanie daty** — w formacie DD.MM.YYYY z jednoliterową nazwą dnia tygodnia (żółty tekst)
 - ✅ **Temperatura** — odczyt z czujnika DHT11, wyświetlanie jako "TEMP: XX.X C" (czerwony tekst, duża czcionka)
-- ✅ **Wilgotność** — odczyt z czujnika DHT11, wyświetlanie jako "WILG: XX.X %" (zielony tekst, duża czcionka)
+- ✅ **Wilgotność** — odczyt z czujnika DHT11, wyświetlanie jako "WILG: XX.X %" (cyjan tekst, duża czcionka)
 - ✅ **Synchronizacja czasu** — poprzez NTP (serwer: pool.ntp.org)
 - ✅ **Połączenie WiFi** — automatyczne łączenie się z siecią WiFi przy starcie
 - ✅ **Diagnostyka WiFi** — wypisanie dostępnych sieci, statusu połączenia, siły sygnału (RSSI)
 - ✅ **Podświetlenie sterowane** — GPIO32 kontroluje LED wyświetlacza
 - ✅ **Sprzętowe SPI** — komunikacja z wyświetlaczem przez VSPI z ręcznym resetem
+- ✅ **Optymalizacja wyświetlania** — selektywne odświeżanie tylko zmienionych wartości (bez migotania ekranu)
 
 ## Wymagane komponenty
 
@@ -113,11 +114,13 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 - Pobranie bieżącego czasu
 - Odczyt temperatury i wilgotności z DHT11
 - Konwersja do czytelnego formatu (DD.MM.YYYY, HH:MM:SS)
+- **Optymalizacja**: Przechowywanie poprzednich wartości w zmiennych statycznych
+- **Selektywne odświeżanie**: Aktualizacja tylko zmienionych elementów (eliminacja migotania)
 - Wyświetlenie na ekranie:
-  - **Wiersz 1**: Godzina HH:MM:SS (biały, duża czcionka 3x)
-  - **Wiersz 2**: Data DD.MM.YYYY + jednoliterowa nazwa dnia (żółty + cyan, czcionka 2x)
-  - **Wiersz 3**: TEMP: XX.X C (czerwony, czcionka 2x)
-  - **Wiersz 4**: WILG: XX.X % (zielony, czcionka 2x)
+  - **Wiersz 1**: Godzina HH:MM:SS (biały tekst, duża czcionka 3x)
+  - **Wiersz 2**: Data DD.MM.YYYY + jednoliterowa nazwa dnia (żółty tekst, czcionka 2x)
+  - **Wiersz 3**: TEMP: XX.X C (czerwony tekst, czcionka 2x)
+  - **Wiersz 4**: WILG: XX.X % (cyjan tekst, czcionka 2x)
 
 #### Funkcja: `setup()`
 - Inicjalizacja UART (115200 baud)
@@ -131,9 +134,13 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 - Synchronizacja czasu NTP
 
 #### Funkcja: `loop()`
-- Pobranie bieżącego czasu
-- Odczyt temperatury i wilgotności z DHT11
-- Wyświetlenie wszystkich danych na ekranie
+- Selektywne odświeżanie wartości:
+  - **Czas**: aktualizacja tylko gdy zmienią się sekundy
+  - **Data**: aktualizacja tylko gdy zmieni się dzień
+  - **Temperatura**: aktualizacja przy zmianie > 0.1°C
+  - **Wilgotność**: aktualizacja przy zmianie > 0.1%
+- Czyszczenie tylko konkretnych obszarów (bez migotania całego ekranu)
+- Tekst rysowany z jawnym ustawieniem koloru tła (zapobiega nakładaniu się znaków)
 - Aktualizacja co 1 sekundę
 
 ## Diagnostyka Problemów

@@ -146,6 +146,13 @@ void setupTime() {
 }
 
 void displayDateTime() {
+  static char prevTimeStr[32] = "";
+  static char prevDateStr[32] = "";
+  static const char* prevDay = "";
+  static float prevTemp = -999.0;
+  static float prevHumidity = -999.0;
+  static bool firstRun = true;
+  
   // Pobierz bieżący czas
   time_t now = time(nullptr);
   struct tm* timeinfo = localtime(&now);
@@ -165,46 +172,65 @@ void displayDateTime() {
   float humidity = dht.readHumidity();
   float temperature = dht.readTemperature();
   
-  // Wyczyść ekran
-  tft.fillScreen(ST7735_BLACK);
-  
-  // Time value (duża czcionka, u góry)
-  tft.setTextColor(ST7735_WHITE);
-  tft.setTextSize(3);
-  tft.setCursor(8, 8);
-  tft.println(timeStr);
-
-  // Date value with day of week (single letter)
-  tft.setTextColor(ST7735_YELLOW);
-  tft.setTextSize(2);
-  tft.setCursor(8, 40);
-  tft.print(dateStr);
-  tft.print(" ");
-  tft.setTextColor(ST7735_CYAN);
-  tft.println(polishDay);
-  
-  // Temperatura (większa czcionka)
-  tft.setTextColor(ST7735_RED);
-  tft.setTextSize(2);
-  tft.setCursor(8, 68);
-  if (!isnan(temperature)) {
-    tft.print("TEMP: ");
-    tft.print(temperature, 1);
-    tft.println(" C");
-  } else {
-    tft.println("TEMP: --C");
+  // Wyczyść ekran tylko przy pierwszym uruchomieniu
+  if (firstRun) {
+    tft.fillScreen(ST7735_BLACK);
+    firstRun = false;
   }
   
-  // Wilgotność (większa czcionka)
-  tft.setTextColor(ST7735_GREEN);
-  tft.setTextSize(2);
-  tft.setCursor(8, 92);
-  if (!isnan(humidity)) {
-    tft.print("WILG: ");
-    tft.print(humidity, 1);
-    tft.println(" %");
-  } else {
-    tft.println("WILG: -- %");
+  // Aktualizuj czas tylko gdy się zmienia
+  if (strcmp(timeStr, prevTimeStr) != 0) {
+    tft.fillRect(0, 8, 128, 26, ST7735_BLACK); // Wyczyść cały obszar czasu
+    tft.setTextColor(ST7735_WHITE, ST7735_BLACK); // Biały tekst na czarnym tle
+    tft.setTextSize(3);
+    tft.setCursor(8, 8);
+    tft.println(timeStr);
+    strcpy(prevTimeStr, timeStr);
+  }
+
+  // Aktualizuj datę tylko gdy się zmienia
+  if (strcmp(dateStr, prevDateStr) != 0 || prevDay != polishDay) {
+    tft.fillRect(0, 40, 128, 18, ST7735_BLACK); // Wyczyść obszar daty
+    tft.setTextColor(ST7735_YELLOW, ST7735_BLACK); // Żółty tekst na czarnym tle
+    tft.setTextSize(2);
+    tft.setCursor(8, 40);
+    tft.print(dateStr);
+    tft.print(" ");
+    tft.println(polishDay);
+    strcpy(prevDateStr, dateStr);
+    prevDay = polishDay;
+  }
+  
+  // Aktualizuj temperaturę tylko gdy się zmienia (z tolerancją 0.1°C)
+  if (abs(temperature - prevTemp) > 0.1 || (isnan(temperature) != isnan(prevTemp))) {
+    tft.fillRect(0, 68, 128, 18, ST7735_BLACK); // Wyczyść obszar temperatury
+    tft.setTextColor(ST7735_RED, ST7735_BLACK); // Czerwony tekst na czarnym tle
+    tft.setTextSize(2);
+    tft.setCursor(8, 68);
+    if (!isnan(temperature)) {
+      tft.print("TEMP: ");
+      tft.print(temperature, 1);
+      tft.println(" C");
+    } else {
+      tft.println("TEMP: --C");
+    }
+    prevTemp = temperature;
+  }
+  
+  // Aktualizuj wilgotność tylko gdy się zmienia (z tolerancją 0.1%)
+  if (abs(humidity - prevHumidity) > 0.1 || (isnan(humidity) != isnan(prevHumidity))) {
+    tft.fillRect(0, 92, 128, 18, ST7735_BLACK); // Wyczyść obszar wilgotności
+    tft.setTextColor(ST7735_CYAN, ST7735_BLACK); // Cyjan tekst na czarnym tle
+    tft.setTextSize(2);
+    tft.setCursor(8, 92);
+    if (!isnan(humidity)) {
+      tft.print("WILG: ");
+      tft.print(humidity, 1);
+      tft.println(" %");
+    } else {
+      tft.println("WILG: -- %");
+    }
+    prevHumidity = humidity;
   }
 }
 
