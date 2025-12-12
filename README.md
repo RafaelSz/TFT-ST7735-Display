@@ -14,7 +14,7 @@ Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę, dz
 - ✅ **Podświetlenie sterowane** — GPIO32 kontroluje LED wyświetlacza
 - ✅ **Sprzętowe SPI** — komunikacja z wyświetlaczem przez VSPI z ręcznym resetem
 - ✅ **Optymalizacja wyświetlania** — selektywne odświeżanie tylko zmienionych wartości (bez migotania ekranu)
-- ✅ **Serwer webowy** — wyświetlanie danych w przeglądarce internetowej z auto-odświeżaniem co 5 sekund
+- ✅ **Serwer webowy** — wyświetlanie danych w przeglądarce internetowej z aktualizacją na żywo (AJAX)
 - ✅ **API JSON** — endpoint `/api` zwracający dane w formacie JSON
 
 ## Wymagane komponenty
@@ -99,7 +99,7 @@ Po uruchomieniu urządzenia:
 1. Sprawdź w monitorze szeregowym adres IP (np. `192.168.1.100`)
 2. Otwórz przeglądarkę internetową
 3. Wpisz adres: `http://[ADRES_IP]` (np. `http://192.168.1.100`)
-4. Strona automatycznie odświeża się co 5 sekund
+4. Dane aktualizują się automatycznie co 1 sekundę **bez przeładowania strony** (AJAX)
 
 **API JSON**: Dostęp do danych w formacie JSON: `http://[ADRES_IP]/api`
 
@@ -149,7 +149,8 @@ Przykład odpowiedzi:
 #### Funkcja: `handleRoot()`
 - Generuje stronę HTML dla serwera webowego
 - Responsywny design z gradientowym tłem
-- Auto-odświeżanie co 5 sekund
+- **Aktualizacja na żywo**: Dane odświeżają się co 1 sekundę bez przeładowania strony (AJAX/fetch API)
+- Wizualna animacja pulsująca wskazująca aktywne połączenie
 - Wyświetla wszystkie dane z wyświetlacza (czas, data, temperatura, wilgotność)
 - Kolorowe sekcje odpowiadające kolorom na wyświetlaczu
 
@@ -278,9 +279,9 @@ tft.setRotation(1);  // 0, 1, 2, 3 — 4 orientacje
 - **Rozdzielczość**: 128x160 pikseli
 - **Głębia kolorów**: 16-bit RGB565
 - **Serwer webowy**: Port 80 (HTTP)
-- **Auto-odświeżanie**: Strona odświeża się co 5 sekund
+- **Aktualizacja danych**: Co 1 sekundę przez AJAX (bez przeładowania strony)
 - **RAM**: Zużycie ~14.4% (47120 bajtów)
-- **Flash**: Zużycie ~62.5% (819761 bajtów)
+- **Flash**: Zużycie ~62.6% (820329 bajtów)
 
 ## Licencja
 

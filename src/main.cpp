@@ -166,58 +166,65 @@ void handleRoot() {
   html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }";
   html += ".container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }";
   html += "h1 { color: #333; text-align: center; margin-bottom: 30px; }";
-  html += ".data-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }";
+  html += ".data-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; transition: all 0.3s ease; }";
+  html += ".data-box:hover { transform: translateX(5px); }";
   html += ".label { font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 1px; }";
-  html += ".value { font-size: 32px; font-weight: bold; color: #333; margin-top: 5px; }";
+  html += ".value { font-size: 32px; font-weight: bold; color: #333; margin-top: 5px; transition: color 0.3s ease; }";
   html += ".time { color: #667eea; }";
   html += ".date { color: #f39c12; }";
   html += ".temp { color: #e74c3c; }";
   html += ".humidity { color: #00bcd4; }";
   html += ".footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }";
+  html += ".status { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #4caf50; margin-left: 10px; animation: pulse 2s infinite; }";
+  html += "@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }";
   html += "@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }";
   html += ".data-box { animation: fadeIn 0.5s ease-out; }";
   html += "</style>";
-  html += "<script>";
-  html += "setInterval(function() { location.reload(); }, 5000);";
-  html += "</script>";
   html += "</head><body>";
   html += "<div class='container'>";
-  html += "<h1>📊 Stacja Pogodowa ESP32</h1>";
+  html += "<h1>📊 Stacja Pogodowa ESP32<span class='status'></span></h1>";
   
   html += "<div class='data-box'>";
   html += "<div class='label'>Godzina</div>";
-  html += "<div class='value time'>" + String(currentTime) + "</div>";
+  html += "<div class='value time' id='time'>--:--:--</div>";
   html += "</div>";
   
   html += "<div class='data-box'>";
   html += "<div class='label'>Data</div>";
-  html += "<div class='value date'>" + String(currentDate) + " (" + String(currentDay) + ")</div>";
+  html += "<div class='value date' id='date'>--.--.---- (-)</div>";
   html += "</div>";
   
   html += "<div class='data-box'>";
   html += "<div class='label'>Temperatura</div>";
-  html += "<div class='value temp'>";
-  if (!isnan(currentTemperature)) {
-    html += String(currentTemperature, 1) + " °C";
-  } else {
-    html += "-- °C";
-  }
-  html += "</div></div>";
+  html += "<div class='value temp' id='temp'>-- °C</div>";
+  html += "</div>";
   
   html += "<div class='data-box'>";
   html += "<div class='label'>Wilgotność</div>";
-  html += "<div class='value humidity'>";
-  if (!isnan(currentHumidity)) {
-    html += String(currentHumidity, 1) + " %";
-  } else {
-    html += "-- %";
-  }
-  html += "</div></div>";
+  html += "<div class='value humidity' id='humidity'>-- %</div>";
+  html += "</div>";
   
   html += "<div class='footer'>";
-  html += "ESP32 + ST7735 + DHT11<br>Odświeżanie co 5 sekund";
+  html += "ESP32 + ST7735 + DHT11<br>Aktualizacja na żywo (co 1s)";
   html += "</div>";
-  html += "</div></body></html>";
+  html += "</div>";
+  
+  html += "<script>";
+  html += "function updateData() {";
+  html += "  fetch('/api')";
+  html += "    .then(response => response.json())";
+  html += "    .then(data => {";
+  html += "      document.getElementById('time').textContent = data.time;";
+  html += "      document.getElementById('date').textContent = data.date + ' (' + data.day + ')';";
+  html += "      document.getElementById('temp').textContent = data.temperature.toFixed(1) + ' °C';";
+  html += "      document.getElementById('humidity').textContent = data.humidity.toFixed(1) + ' %';";
+  html += "    })";
+  html += "    .catch(err => console.error('Error:', err));";
+  html += "}";
+  html += "updateData();";
+  html += "setInterval(updateData, 1000);";
+  html += "</script>";
+  html += "</body></html>";
   
   server.send(200, "text/html", html);
 }
