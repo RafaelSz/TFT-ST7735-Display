@@ -5,6 +5,7 @@
 #include <time.h>
 #include <WiFi.h>
 #include <DHT.h>
+#include <WebServer.h>
 
 // Jeśli chcesz pominąć test i używać WiFi/NTP ustaw 0
 #define DISABLE_WIFI 0
@@ -79,6 +80,16 @@ Adafruit_ST7735 tft = Adafruit_ST7735(TFT_CS, TFT_A0, TFT_RESET);
 // Initialize DHT sensor
 DHT dht(DHTPIN, DHTTYPE);
 
+// Web server on port 80
+WebServer server(80);
+
+// Global variables for sensor data
+float currentTemperature = 0.0;
+float currentHumidity = 0.0;
+char currentTime[32] = "--:--:--";
+char currentDate[32] = "--.--.----";
+char currentDay[8] = "-";
+
 void connectToWiFi() {
   Serial.println("----- WiFi diagnostic start -----");
 
@@ -145,6 +156,85 @@ void setupTime() {
   Serial.println(ctime(&now));
 }
 
+// HTML page handler
+void handleRoot() {
+  String html = "<!DOCTYPE html><html lang='pl'><head>";
+  html += "<meta charset='UTF-8'>";
+  html += "<meta name='viewport' content='width=device-width, initial-scale=1.0'>";
+  html += "<title>ESP32 Stacja Pogodowa</title>";
+  html += "<style>";
+  html += "body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }";
+  html += ".container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }";
+  html += "h1 { color: #333; text-align: center; margin-bottom: 30px; }";
+  html += ".data-box { background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 15px 0; border-radius: 5px; }";
+  html += ".label { font-size: 14px; color: #666; text-transform: uppercase; letter-spacing: 1px; }";
+  html += ".value { font-size: 32px; font-weight: bold; color: #333; margin-top: 5px; }";
+  html += ".time { color: #667eea; }";
+  html += ".date { color: #f39c12; }";
+  html += ".temp { color: #e74c3c; }";
+  html += ".humidity { color: #00bcd4; }";
+  html += ".footer { text-align: center; margin-top: 30px; color: #999; font-size: 12px; }";
+  html += "@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }";
+  html += ".data-box { animation: fadeIn 0.5s ease-out; }";
+  html += "</style>";
+  html += "<script>";
+  html += "setInterval(function() { location.reload(); }, 5000);";
+  html += "</script>";
+  html += "</head><body>";
+  html += "<div class='container'>";
+  html += "<h1>📊 Stacja Pogodowa ESP32</h1>";
+  
+  html += "<div class='data-box'>";
+  html += "<div class='label'>Godzina</div>";
+  html += "<div class='value time'>" + String(currentTime) + "</div>";
+  html += "</div>";
+  
+  html += "<div class='data-box'>";
+  html += "<div class='label'>Data</div>";
+  html += "<div class='value date'>" + String(currentDate) + " (" + String(currentDay) + ")</div>";
+  html += "</div>";
+  
+  html += "<div class='data-box'>";
+  html += "<div class='label'>Temperatura</div>";
+  html += "<div class='value temp'>";
+  if (!isnan(currentTemperature)) {
+    html += String(currentTemperature, 1) + " °C";
+  } else {
+    html += "-- °C";
+  }
+  html += "</div></div>";
+  
+  html += "<div class='data-box'>";
+  html += "<div class='label'>Wilgotność</div>";
+  html += "<div class='value humidity'>";
+  if (!isnan(currentHumidity)) {
+    html += String(currentHumidity, 1) + " %";
+  } else {
+    html += "-- %";
+  }
+  html += "</div></div>";
+  
+  html += "<div class='footer'>";
+  html += "ESP32 + ST7735 + DHT11<br>Odświeżanie co 5 sekund";
+  html += "</div>";
+  html += "</div></body></html>";
+  
+  server.send(200, "text/html", html);
+}
+
+// JSON API handler
+void handleAPI() {
+  String json = "{";
+  json += "\"time\":\"" + String(currentTime) + "\",";
+  json += "\"date\":\"" + String(currentDate) + "\",";
+  json += "\"day\":\"" + String(currentDay) + "\",";
+  json += "\"temperature\":" + String(currentTemperature, 1) + ",";
+  json += "\"humidity\":" + String(currentHumidity, 1);
+  json += "}";
+  
+  server.send(200, "application/json", json);
+}
+
 void displayDateTime() {
   static char prevTimeStr[32] = "";
   static char prevDateStr[32] = "";
@@ -171,6 +261,13 @@ void displayDateTime() {
   // Odczytaj dane z DHT11
   float humidity = dht.readHumidity();
   float temperature = dht.readTemperature();
+  
+  // Aktualizuj zmienne globalne dla serwera webowego
+  strcpy(currentTime, timeStr);
+  strcpy(currentDate, dateStr);
+  strcpy(currentDay, polishDay);
+  currentTemperature = temperature;
+  currentHumidity = humidity;
   
   // Wyczyść ekran tylko przy pierwszym uruchomieniu
   if (firstRun) {
@@ -285,12 +382,25 @@ void setup() {
   
   // Synchronizacja czasu
   setupTime();
+  
+  // Konfiguracja serwera webowego
+  if (WiFi.status() == WL_CONNECTED) {
+    server.on("/", handleRoot);
+    server.on("/api", handleAPI);
+    server.begin();
+    Serial.println("Serwer webowy uruchomiony!");
+    Serial.print("Otwórz w przeglądarce: http://");
+    Serial.println(WiFi.localIP());
+  }
   #else
     Serial.println("WiFi wyłączone (DISABLE_WIFI=1) — pomijam synchronizację czasu.");
   #endif
 }
 
 void loop() {
+  // Obsługa żądań HTTP
+  server.handleClient();
+  
   // Aktualizuj wyświetlacz co 1 sekundę
   displayDateTime();
   delay(1000);

@@ -14,6 +14,8 @@ Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę, dz
 - ✅ **Podświetlenie sterowane** — GPIO32 kontroluje LED wyświetlacza
 - ✅ **Sprzętowe SPI** — komunikacja z wyświetlaczem przez VSPI z ręcznym resetem
 - ✅ **Optymalizacja wyświetlania** — selektywne odświeżanie tylko zmienionych wartości (bez migotania ekranu)
+- ✅ **Serwer webowy** — wyświetlanie danych w przeglądarce internetowej z auto-odświeżaniem co 5 sekund
+- ✅ **API JSON** — endpoint `/api` zwracający dane w formacie JSON
 
 ## Wymagane komponenty
 
@@ -30,6 +32,7 @@ Program Arduino dla płytki ESP32 wyświetlający bieżącą datę, godzinę, dz
 - `DHT sensor library` (v1.4.6+)
 - `SPI` (wbudowana w Arduino Framework)
 - `WiFi` (wbudowana w Arduino Framework)
+- `WebServer` (wbudowana w Arduino Framework)
 
 ## Schemat Połączeń
 
@@ -91,6 +94,26 @@ Aby zobaczyć logi (diagnostyka WiFi, synchronizacja czasu):
 pio device monitor --port /dev/ttyUSB0 --baud 115200
 ```
 
+### 6. Dostęp do serwera webowego
+Po uruchomieniu urządzenia:
+1. Sprawdź w monitorze szeregowym adres IP (np. `192.168.1.100`)
+2. Otwórz przeglądarkę internetową
+3. Wpisz adres: `http://[ADRES_IP]` (np. `http://192.168.1.100`)
+4. Strona automatycznie odświeża się co 5 sekund
+
+**API JSON**: Dostęp do danych w formacie JSON: `http://[ADRES_IP]/api`
+
+Przykład odpowiedzi:
+```json
+{
+  "time": "14:30:45",
+  "date": "12.12.2025",
+  "day": "P",
+  "temperature": 22.5,
+  "humidity": 45.3
+}
+```
+
 ## Struktura Programu
 
 ### Plik: `src/main.cpp`
@@ -116,11 +139,24 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 - Konwersja do czytelnego formatu (DD.MM.YYYY, HH:MM:SS)
 - **Optymalizacja**: Przechowywanie poprzednich wartości w zmiennych statycznych
 - **Selektywne odświeżanie**: Aktualizacja tylko zmienionych elementów (eliminacja migotania)
+- **Aktualizacja zmiennych globalnych**: Zapisanie wartości do zmiennych globalnych dla serwera webowego
 - Wyświetlenie na ekranie:
   - **Wiersz 1**: Godzina HH:MM:SS (biały tekst, duża czcionka 3x)
   - **Wiersz 2**: Data DD.MM.YYYY + jednoliterowa nazwa dnia (żółty tekst, czcionka 2x)
   - **Wiersz 3**: TEMP: XX.X C (czerwony tekst, czcionka 2x)
   - **Wiersz 4**: WILG: XX.X % (cyjan tekst, czcionka 2x)
+
+#### Funkcja: `handleRoot()`
+- Generuje stronę HTML dla serwera webowego
+- Responsywny design z gradientowym tłem
+- Auto-odświeżanie co 5 sekund
+- Wyświetla wszystkie dane z wyświetlacza (czas, data, temperatura, wilgotność)
+- Kolorowe sekcje odpowiadające kolorom na wyświetlaczu
+
+#### Funkcja: `handleAPI()`
+- Zwraca dane w formacie JSON
+- Endpoint: `/api`
+- Umożliwia integrację z innymi systemami lub aplikacjami mobilnymi
 
 #### Funkcja: `setup()`
 - Inicjalizacja UART (115200 baud)
@@ -132,8 +168,11 @@ pio device monitor --port /dev/ttyUSB0 --baud 115200
 - Inicjalizacja czujnika DHT11
 - Połączenie z WiFi
 - Synchronizacja czasu NTP
+- Uruchomienie serwera webowego (nasłuchuje na porcie 80)
+- Wyświetlenie adresu IP serwera w konsoli
 
 #### Funkcja: `loop()`
+- Obsługa żądań HTTP (server.handleClient())
 - Selektywne odświeżanie wartości:
   - **Czas**: aktualizacja tylko gdy zmienią się sekundy
   - **Data**: aktualizacja tylko gdy zmieni się dzień
@@ -205,6 +244,8 @@ BSSID: AA:BB:CC:DD:EE:FF
 ----- WiFi diagnostic end -----
 Synchronizacja czasu...
 Bieżący czas: Thu Dec 12 11:00:00 2025
+Serwer webowy uruchomiony!
+Otwórz w przeglądarce: http://192.168.1.100
 ```
 
 ## Modyfikacje i Rozszerzenia
@@ -236,6 +277,10 @@ tft.setRotation(1);  // 0, 1, 2, 3 — 4 orientacje
 - **Pobór prądu**: ~50-100 mA (z podświetleniem LED)
 - **Rozdzielczość**: 128x160 pikseli
 - **Głębia kolorów**: 16-bit RGB565
+- **Serwer webowy**: Port 80 (HTTP)
+- **Auto-odświeżanie**: Strona odświeża się co 5 sekund
+- **RAM**: Zużycie ~14.4% (47120 bajtów)
+- **Flash**: Zużycie ~62.5% (819761 bajtów)
 
 ## Licencja
 
